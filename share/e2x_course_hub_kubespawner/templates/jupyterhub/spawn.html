@@ -1,0 +1,31 @@
+{% extends "templates/page.html" %}
+{% block main %}
+  <div class="container">
+      {% block heading %}
+      <div class="row text-center">
+        <h1>Your Courses</h1>
+      </div>
+    {% endblock heading %}
+      <div class="row justify-content-center">
+      <div class="col-md-8">
+    {% if for_user and user.name != for_user.name -%}
+      <p>Spawning server for {{ for_user.name }}</p>
+    {% endif -%}
+    {% if error_message -%}
+      <p class="spawn-error-msg alert alert-danger">Error: {{ error_message }}</p>
+    {% endif %}
+          
+          {{ spawner_options_form | safe }}
+    
+          </div></div>
+  </div>
+{% endblock main %}
+
+{% block script %}
+  {{ super() }}
+  <script>
+      window.url = "{{ url }}";
+      window.autoSpawnSingleCourse = {{ auto_spawn_single_course | default(false) | tojson }};
+      window.autoSpawnCountdown = {{ auto_spawn_countdown | default(5) | tojson }};
+  </script>
+{% endblock script %}

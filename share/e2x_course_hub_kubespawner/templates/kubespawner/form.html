@@ -1,0 +1,565 @@
+<style>
+    .spawner-form {
+  display: inline;
+}
+   .accordion {
+   margin-bottom: 3em;
+   }
+   .accordion-button::after {
+   flex-shrink: 0;
+   width: 1.25rem;
+   height: 1.25rem;
+   margin-left: auto;
+   content: "";
+   background-size: 1.25rem;
+   background-repeat: no-repeat;
+   background-position: center;
+   }
+ 
+   .course-card-container {
+   display: flex;
+   flex-direction: column;
+   }
+   .course-card {
+   display: flex;
+   flex-direction: column;
+   justify-content: space-between; /* pushes buttons/details to bottom if needed */
+   border: 1px solid #e5e7eb;
+   border-radius: 0.5rem;
+   margin-bottom: 1rem;
+   padding: 1rem;
+   background-color: #ffffff;
+   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+   }
+   .course-card h5 {
+   margin-top: 0;
+   }
+   .course-buttons {
+   margin-top: 0.5rem;
+   }
+   #courseSearch {
+   margin-bottom: 1rem;
+   }
+   .no-results {
+   display: none;
+   text-align: center;
+   color: #6c757d;
+   margin: 2rem 0;
+   padding: 1rem;
+   background-color: #f8f9fa;
+   border-radius: 0.25rem;
+   font-style: italic;
+   }
+   .role-btn {
+   margin-right: 0.5rem;
+   margin-bottom: 0.5rem;
+   }
+   .role-btn:hover {
+   background-color: #005d92; /* HBRS dark blue on hover */
+   color: white;
+   border-color: #005d92;
+   }
+   .role-btn:focus {
+   outline: 2px solid #079dde;
+   outline-offset: 2px;
+   }
+   .role-default {
+   background-color: #079dde; /* HBRS medium blue - solid */
+   color: white;
+   border: 1px solid #079dde;
+   }
+   .accordion-button:not(.collapsed) {
+   background-color: #005d92; /* HBRS dark blue */
+   color: white;
+   }
+   #searchInput:focus {
+   border-color: #079dde;
+   box-shadow: 0 0 0 0.2rem rgba(7, 157, 222, 0.25);
+   outline: none;
+   }
+   details {
+   padding: 0.25rem 0.5rem;
+   border: 1px solid #e5e7eb;
+   border-radius: 0.25rem;
+   background-color: transparent;
+   margin-bottom: 0.5rem;
+   }
+   details summary {
+   cursor: pointer;
+   font-weight: 400;
+   font-size: 0.75rem;
+   color: #6c757d;
+   user-select: none;
+   }
+   details summary:hover {
+   color: #079dde;
+   }
+   details[open] {
+   border-color: #d1d5db;
+   }
+   details p {
+   margin: 0.125rem 0 0 0.75rem;
+   font-size: 0.75rem;
+   color: #6c757d;
+   line-height: 1.3;
+   }
+   .view-toggle-container {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   margin-bottom: 1rem;
+   gap: 1rem;
+   }
+   .view-toggle-wrapper {
+   display: flex;
+   border: 1px solid #079dde;
+   border-radius: 0.25rem;
+   overflow: hidden;
+   }
+   .view-toggle-btn {
+   padding: 0.375rem 0.75rem;
+   font-size: 0.875rem;
+   border: none;
+   background-color: transparent;
+   color: #079dde;
+   cursor: pointer;
+   transition: all 0.2s;
+   white-space: nowrap;
+   flex: 1;
+   }
+   .view-toggle-btn:not(:last-child) {
+   border-right: 1px solid #079dde;
+   }
+   .view-toggle-btn:hover:not(.active) {
+   background-color: rgba(7, 157, 222, 0.1);
+   }
+   .view-toggle-btn.active {
+   background-color: #079dde;
+   color: white;
+   font-weight: 500;
+   }
+   .compact-view .course-description,
+   .compact-view .course-name,
+   .compact-view details {
+   display: none;
+   }
+   .compact-view .course-card {
+   padding: 0.75rem 1rem;
+   }
+   .compact-view .course-card h5 {
+   margin-bottom: 0.5rem;
+   }
+   .accordion-button.collapsed .expand-hint {
+   display: inline;
+   }
+   .accordion-button:not(.collapsed) .expand-hint {
+   display: none;
+   }
+   .expand-hint {
+   color: #6c757d;
+   font-size: 0.875rem;
+   }
+   /* Responsive design */
+   @media (max-width: 768px) {
+      .view-toggle-container {
+         flex-direction: column;
+         gap: 0.5rem;
+      }
+      #courseSearch {
+         width: 100%;
+      }
+      .view-toggle-wrapper {
+         width: 100%;
+      }
+   }
+   /* Compact view grid layout */
+   .compact-view .accordion-body .row {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 0.75rem;
+   }
+   .compact-view .course-card-container {
+      margin: 0;
+   }
+   .compact-view .course-card {
+      margin-bottom: 0;
+   }
+   /* Search clear button */
+   .search-clear-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #6c757d;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      display: none;
+      z-index: 10;
+   }
+   .search-clear-btn:hover {
+      color: #079dde;
+   }
+   .search-clear-btn.visible {
+      display: block;
+   }
+   #courseSearch {
+      position: relative;
+   }
+   #searchInput {
+      padding-right: 2.5rem;
+   }
+   /* Empty state styling */
+   .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #6c757d;
+   }
+   .empty-state i {
+      font-size: 3rem;
+      color: #d1d5db;
+      margin-bottom: 1rem;
+   }
+   .empty-state h4 {
+      color: #6c757d;
+      margin-bottom: 0.5rem;
+   }
+   /* Search highlight */
+   .search-highlight {
+      background-color: #d8f3ff;
+      padding: 0.1rem 0.2rem;
+      border-radius: 0.125rem;
+   }
+</style>
+<!-- 🔍 Search bar and view toggle -->
+<div class="view-toggle-container">
+   <div id="courseSearch" style="flex: 1; margin-bottom: 0; position: relative;">
+      <div class="input-group">
+         <span class="input-group-text"><i class="fa fa-search"></i></span>
+         <input type="text" id="searchInput" class="form-control" placeholder="Search courses..." aria-label="Search courses" accesskey="/">
+      </div>
+      <button id="clearSearch" class="search-clear-btn" title="Clear search" aria-label="Clear search">
+         <i class="fa fa-times"></i>
+      </button>
+   </div>
+   <div class="view-toggle-wrapper">
+      <button id="detailedViewBtn" class="view-toggle-btn active" title="Show detailed view with descriptions" aria-label="Switch to detailed view">
+         <i class="fa fa-list"></i> Detailed
+      </button>
+      <button id="compactViewBtn" class="view-toggle-btn" title="Show compact view" aria-label="Switch to compact view">
+         <i class="fa fa-th"></i> Compact
+      </button>
+   </div>
+</div>
+
+{#
+Macro: kubespawner_override(role)
+Generates a collapsible <details> block showing any Kubespawner
+override values defined on the role (image, CPU guarantees/limits,
+and memory guarantees/limits).
+#}
+{% macro kubespawner_override(role) -%}
+  {% if role.kubespawner_override and not role.omit_details %}
+    <details class="mb-2">
+      <summary>Details for {{ role.display_name }}</summary>
+      {% if role.kubespawner_override.image %}
+        <p>
+          <strong>Image:</strong> {{ role.kubespawner_override.image }}
+        </p>
+      {% endif %}
+      {% if role.kubespawner_override.cpu_guarantee or role.kubespawner_override.cpu_limit %}
+        <p>
+          <strong>CPU:</strong>
+          {% if role.kubespawner_override.cpu_guarantee %}guarantee {{ role.kubespawner_override.cpu_guarantee }}{% endif %}
+          {% if role.kubespawner_override.cpu_limit %}, limit {{ role.kubespawner_override.cpu_limit }}{% endif %}
+        </p>
+      {% endif %}
+      {% if role.kubespawner_override.mem_guarantee or role.kubespawner_override.mem_limit %}
+        <p>
+          <strong>Memory:</strong>
+          {% if role.kubespawner_override.mem_guarantee %}guarantee {{ role.kubespawner_override.mem_guarantee }}{% endif %}
+          {% if role.kubespawner_override.mem_limit %}, limit {{ role.kubespawner_override.mem_limit }}{% endif %}
+        </p>
+      {% endif %}
+    </details>
+  {% endif %}
+{%- endmacro %}
+
+{#
+Macro: launch_role_buttons(profile)
+Creates buttons to launch a role for all roles in a profile
+#}
+{% macro launch_role_buttons(profile) -%}
+  <div class="course-buttons mb-2">
+    {% for role_slug, role in profile.profile_options['profile-slug'].choices|dictsort %}
+      <form enctype="multipart/form-data"
+            class="spawner-form"
+            method="post"
+            role="form">
+        <input name="profile"
+               id="profile-item-{{ profile.slug }}"
+               value="{{ profile.slug }}"
+               hidden />
+        <input name="profile-option-{{ profile.slug }}--profile-slug"
+               value="{{ role_slug }}"
+               hidden />
+        <button type="submit" class="btn btn-sm role-btn role-default js-launch-role">Launch {{ role.display_name }}</button>
+      </form>
+    {% endfor %}
+  </div>
+{%- endmacro %}
+
+{#
+Macro course_card(profile)
+Create a card for a profile, complete with launch buttons and overrides
+#}
+{% macro course_card(profile) -%}
+  <div class="course-card-container"
+                    data-course="{{ profile.display_name | lower }} {{ profile.metadata.course_name | default('', true) | lower }}">
+  <div class="course-card">
+    <h5>{{ profile.display_name }}</h5>
+    {% if profile.metadata and profile.metadata.course_name %}
+      <p class="course-name">
+        <strong>{{ profile.metadata.course_name }}</strong>
+      </p>
+    {% endif %}
+    {% if profile.metadata and profile.metadata.description %}<p class="course-description">{{ profile.metadata.description }}</p>{% endif %}
+    {% if profile.profile_options and profile.profile_options['profile-slug'] %}
+      {{ launch_role_buttons(profile) }}
+      <input type="hidden"
+             id="profile-role-{{ profile.slug }}"
+             name="profile-option-{{ profile.slug }}--profile-slug" />
+      {# Show details only if kubespawner_override exists #}
+      {% for role_slug, role in profile.profile_options['profile-slug'].choices.items() %}
+        {{ kubespawner_override(role) }}
+      {% endfor %}
+    {% else %}
+      <button type="submit"
+              class="btn btn-sm btn-primary role-default js-launch-role"
+              name="profile"
+              value="{{ profile.slug }}">Launch</button>
+    {% endif %}
+  </div>
+    </div>
+{%- endmacro %}
+
+<div class="accordion" id="semesterAccordion">
+  {% set grouped = {} %}
+  {% set term_label = {} %}
+  {% if not profile_list %}
+    <div class="empty-state">
+      <i class="fa fa-inbox"></i>
+      <h4>No Courses Available</h4>
+      <p>You are not a member of any course yet.</p>
+    </div>
+  {% endif %}
+    
+  {# Make sure all profiles are sorted by sort key #}
+  {% for profile in profile_list %}
+    {% set sort_key = profile.sort_key if profile.sort_key else "Other" %}
+    {% if grouped.setdefault(sort_key, []).append(profile) %}{% endif %}
+    {% set _dummy = term_label.update({sort_key: profile.term}) %}
+  {% endfor %}
+  {% set _dummy = term_label.update({'Other': 'Other'}) %}
+  {% set sorted_terms = grouped.keys() | list | sort(reverse=True) %}
+  {% set sorted_terms = sorted_terms | reject('equalto', 'Other') | list + (['Other'] if 'Other' in grouped else []) %}
+  {% for term in sorted_terms %}
+    {% if term in grouped %}
+      <div class="accordion-item semester-section" data-semester="{{ term }}">
+        <h2 class="accordion-header" id="heading-{{ term }}">
+          <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapse-{{ term }}"
+                  aria-expanded="{{ 'true' if loop.first else 'false' }}"
+                  aria-controls="collapse-{{ term }}">
+            {{ term_label[term] }}
+            <small class="expand-hint ms-2">(click to expand)</small>
+              <span style="padding-left: 1em" class="search-hits"></span>
+          </button>
+        </h2>
+        <div id="collapse-{{ term }}"
+             class="accordion-collapse collapse {% if loop.first %}show{% endif %}"
+             aria-labelledby="heading-{{ term }}"
+             data-bs-parent="#semesterAccordion">
+          <div class="accordion-body">
+            <div class="row">
+              {% for profile in grouped[term] | sort(attribute='metadata.course_id') %}{{ course_card(profile) }}{% endfor %}
+            </div>
+            <div class="no-results">No courses found in {{ term }}.</div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>
+
+<script>
+
+   document.addEventListener("DOMContentLoaded", () => {
+      const forms = document.querySelectorAll(".spawner-form");
+      forms.forEach(form => {
+          form.action = window.url;
+
+          // Optional: update input fields named "url"
+          const urlInputs = form.querySelectorAll('input[name="url"]');
+          urlInputs.forEach(input => input.value = window.url);
+      });
+
+      // Only auto-spawn if enabled and there is exactly one profile with one role option
+      if (window.autoSpawnSingleCourse) {
+          const launchButtons = document.querySelectorAll(".js-launch-role");
+          if (launchButtons.length === 1) {
+              const singleForm = launchButtons[0].closest("form") || launchButtons[0].closest(".spawner-form");
+              if (singleForm) {
+                  const countdown = window.autoSpawnCountdown ?? 5;
+                  const courseName = document.querySelector(".course-card h5")?.textContent?.trim() || "your course";
+
+                  if (countdown <= 0) {
+                      singleForm.submit();
+                      return;
+                  }
+
+                  document.querySelector(".view-toggle-container").style.display = "none";
+                  document.getElementById("semesterAccordion").style.display = "none";
+
+                  const overlay = document.createElement("div");
+                  overlay.innerHTML = `
+                      <div style="text-align:center; padding:3rem 1rem; color:#333;">
+                          <i class="fa fa-rocket" style="font-size:3rem; color:#079dde; margin-bottom:1rem; display:block;"></i>
+                          <h4 style="margin-bottom:0.5rem;">Launching <strong>${courseName}</strong></h4>
+                          <p style="font-size:1.1rem;">Automatically spawning in <strong id="countdown-seconds">${countdown}</strong> seconds&hellip;</p>
+                          <button id="cancel-autolaunch" class="btn btn-outline-secondary btn-sm" style="margin-top:1rem;">
+                              <i class="fa fa-times"></i> Cancel
+                          </button>
+                      </div>
+                  `;
+                  document.getElementById("semesterAccordion").parentNode.insertBefore(
+                      overlay, document.getElementById("semesterAccordion")
+                  );
+
+                  let remaining = countdown;
+                  const countdownEl = document.getElementById("countdown-seconds");
+                  const timer = setInterval(() => {
+                      remaining--;
+                      countdownEl.textContent = remaining;
+                      if (remaining <= 0) {
+                          clearInterval(timer);
+                          singleForm.submit();
+                      }
+                  }, 1000);
+
+                  document.getElementById("cancel-autolaunch").addEventListener("click", () => {
+                      clearInterval(timer);
+                      overlay.remove();
+                      document.querySelector(".view-toggle-container").style.display = "";
+                      document.getElementById("semesterAccordion").style.display = "";
+                  });
+
+                  return; // Skip rest of UI setup while countdown is active
+              }
+          }
+      }
+
+      // View toggle functionality
+      const detailedViewBtn = document.getElementById("detailedViewBtn");
+      const compactViewBtn = document.getElementById("compactViewBtn");
+      const accordion = document.getElementById("semesterAccordion");
+
+      // Load saved preference
+      const isCompact = localStorage.getItem("courseViewCompact") === "true";
+      if (isCompact) {
+         accordion.classList.add("compact-view");
+         detailedViewBtn.classList.remove("active");
+         compactViewBtn.classList.add("active");
+      }
+
+      detailedViewBtn.addEventListener("click", () => {
+         if (!detailedViewBtn.classList.contains("active")) {
+            accordion.classList.remove("compact-view");
+            detailedViewBtn.classList.add("active");
+            compactViewBtn.classList.remove("active");
+            localStorage.setItem("courseViewCompact", false);
+         }
+      });
+
+      compactViewBtn.addEventListener("click", () => {
+         if (!compactViewBtn.classList.contains("active")) {
+            accordion.classList.add("compact-view");
+            compactViewBtn.classList.add("active");
+            detailedViewBtn.classList.remove("active");
+            localStorage.setItem("courseViewCompact", true);
+         }
+      });
+  });
+   // 🔍 Course search filter with debouncing
+   const searchInput = document.getElementById("searchInput");
+   const clearSearchBtn = document.getElementById("clearSearch");
+   let searchTimeout;
+
+   function performSearch() {
+     const query = searchInput.value.toLowerCase().trim();
+     let anyVisible = false;
+   
+     // Show/hide clear button
+     clearSearchBtn.classList.toggle("visible", query.length > 0);
+
+     document.querySelectorAll(".semester-section").forEach(section => {
+       let semesterHasVisible = false;
+       let n_hits = 0;
+   
+       section.querySelectorAll(".course-card-container").forEach(card => {
+         if (card.dataset.course.includes(query)) {
+           card.style.display = "";
+           semesterHasVisible = true;
+           n_hits += 1;
+           anyVisible = true;
+         } else {
+           card.style.display = "none";
+         }
+       });
+   
+       // show/hide "No results" message
+       const noResults = section.querySelector(".no-results");
+       if (semesterHasVisible) {
+         noResults.style.display = "none";
+         if (query.trim().length > 0) {
+             section.querySelector(".search-hits").textContent = `${n_hits} matching course(s).`;
+         } else {
+             section.querySelector(".search-hits").textContent = "";
+         }
+       } else {
+         noResults.style.display = "block";
+           section.querySelector(".search-hits").textContent = "";
+       }
+     });
+   }
+
+   searchInput.addEventListener("input", function () {
+     clearTimeout(searchTimeout);
+     searchTimeout = setTimeout(performSearch, 150);
+   });
+
+   // Clear search button
+   clearSearchBtn.addEventListener("click", () => {
+     searchInput.value = "";
+     performSearch();
+     searchInput.focus();
+   });
+
+   // Keyboard navigation
+   document.addEventListener("keydown", (e) => {
+     // Focus search on '/' key (if not in an input)
+     if (e.key === "/" && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+       e.preventDefault();
+       searchInput.focus();
+     }
+     // Clear search on Escape
+     if (e.key === "Escape" && document.activeElement === searchInput) {
+       searchInput.value = "";
+       performSearch();
+       searchInput.blur();
+     }
+   });
+</script>

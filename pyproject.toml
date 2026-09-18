@@ -1,0 +1,105 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "e2x-course-hub-kubespawner"
+dynamic = ["version"]
+description = 'Role-Based Access Control (RBAC) for JupyterHub within the e2x ecosystem, supporting hierarchical scopes (Hub, Course, Term) based on JupyterHub groups.'
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Tim Metzler", email = "tim.metzler@h-brs.de" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+  "e2x-course-hub",
+  "PyYAML",
+  "pydantic>=2.0.0",
+  "pydantic-settings>=2.0.0",
+]
+
+[project.urls]
+Documentation = "https://github.com/Digiklausur/e2x-course-hub-kubespawner#readme"
+Issues = "https://github.com/Digiklausur/e2x-course-hub-kubespawner/issues"
+Source = "https://github.com/Digiklausur/e2x-course-hub-kubespawner"
+
+[project.optional-dependencies]
+dev = [
+  "pre-commit",
+  "ruff",
+  "tbump",
+  "build",
+  "twine",
+]
+test = [
+  "pytest",
+  "pytest-cov",
+  "pytest-asyncio",
+]
+docs = [
+  "sphinx",
+  "pydata-sphinx-theme",
+]
+
+[project.entry-points."e2x_course_hub.infrastructure_catalog_providers"]
+k8s_catalog = "e2x_course_hub_kubespawner.catalog_provider:K8sInfrastructureCatalogProvider"
+
+[tool.hatch.version]
+path = "e2x_course_hub_kubespawner/__about__.py"
+
+[tool.hatch.build.targets.wheel.shared-data]
+"share/e2x_course_hub_kubespawner" = "share/e2x_course_hub_kubespawner"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.tbump]
+github_url = "https://github.com/Digiklausur/e2x-course-hub-kubespawner"
+
+[tool.tbump.version]
+current = "0.2.0"
+regex = '''
+  (?P<major>\d+)
+  \.
+  (?P<minor>\d+)
+  \.
+  (?P<patch>\d+)
+  (?P<rc>rc\d+)?
+  '''
+
+[tool.tbump.git]
+message_template = "Bump to {new_version}"
+tag_template = "v{new_version}"
+
+# Files with the version to update
+[[tool.tbump.file]]
+src = "e2x_k8s_spawner/__about__.py"
+
+[[tool.tbump.before_commit]]
+name = "Build"
+cmd = "python -m build"
+
+[[tool.tbump.before_commit]]
+name = "Check with pytest"
+cmd = "pytest"
+
+[[tool.tbump.before_commit]]
+name = "Check with twine"
+cmd = "twine check dist/*"
+
+[tool.ruff]
+line-length = 100
+lint.select = ["F", "E", "I"]
