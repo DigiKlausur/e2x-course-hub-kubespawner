@@ -15,11 +15,11 @@
 │  SpawnOfferingProvider  ─┼─────────▶│  catalogs (YAML)                 │
 │  (who may spawn what)    │          │  K8sInfrastructureCatalogProvider│
 │                          │◀─────────┼─ (what a role gets, in K8s terms)│
-└────────────┬─────────────┘          └────────────────┬─────────────────┘
+└────────────┬─────────────┘          └─────────────────┬────────────────┘
              │                                          │
              │        profile list / pre-spawn hooks    │
              └──────────────────────┬───────────────────┘
-                                     ▼
+                                    ▼
                           ┌───────────────────────┐
                           │  JupyterHub +         │
                           │  KubeSpawner          │
