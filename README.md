@@ -188,6 +188,10 @@ from e2x_course_hub_kubespawner.hooks import (
     get_pre_spawn_hook,
     get_profile_list_hook,
 )
+import os
+
+# set the environment variable pointing to the config.yaml
+os.environ["E2X_KUBESPAWNER_CONFIG_FILE"] = "/path/to/my/config.yaml"
 
 # spawn_offering_provider comes from e2x-course-hub
 c.KubeSpawner.profile_list = get_profile_list_hook(spawn_offering_provider)
@@ -223,9 +227,3 @@ pytest
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Contact
-
-For questions or support, please contact [Tim Metzler](mailto:tim.metzler@h-brs.de).
