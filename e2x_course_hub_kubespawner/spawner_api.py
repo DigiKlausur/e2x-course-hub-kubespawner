@@ -4,7 +4,7 @@ from e2x_course_hub.contract import CourseReference, SpawnOffering, SpawnOfferin
 
 from .loading import load_infrastructure_catalog, load_mount_catalog
 from .schemas.config import Config
-from .schemas.mount import Mount
+from .schemas.mount import Mount, deduplicate_mounts
 from .schemas.spawning import (
     KubeSpawnerProfileChoice,
     KubeSpawnerProfileEntry,
@@ -96,7 +96,7 @@ class K8sSpawnerAPI:
                     term_ids=offerings.archive_terms_for(offering),
                 )
             )
-        return mounts
+        return deduplicate_mounts(mounts)
 
     def _get_runtime_for_offering(self, user: UserLike, offering: SpawnOffering) -> Runtime:
         selection = offering.selection
