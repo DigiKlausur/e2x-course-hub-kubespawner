@@ -34,7 +34,7 @@ def load_yaml(yaml_file: Path | str) -> dict:
         data = yaml.safe_load(f)
 
     if not isinstance(data, dict):
-        raise ValueError(f"Expected YAML mapping in {yaml_file}")
+        raise TypeError(f"Expected YAML mapping in {yaml_file}")
 
     return data
 

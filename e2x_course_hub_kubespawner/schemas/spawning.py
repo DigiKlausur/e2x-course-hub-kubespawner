@@ -1,5 +1,6 @@
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Any, ClassVar, Iterable, Iterator
+from typing import Any, ClassVar
 
 from e2x_course_hub.contract import CourseReference, SpawnOffering
 from pydantic import BaseModel, ConfigDict

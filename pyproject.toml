@@ -102,4 +102,3 @@ cmd = "twine check dist/*"
 
 [tool.ruff]
 line-length = 100
-lint.select = ["F", "E", "I"]

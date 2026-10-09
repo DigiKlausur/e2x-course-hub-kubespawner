@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from e2x_course_hub.contract import SpawnOfferingProvider
 from traitlets.config import Config as TraitletsConfig
@@ -74,7 +74,7 @@ def get_pre_spawn_hook(
         offering = api.get_offering_from_choice_slug(user, choice_slug)
         resolved_offering = api.resolve(user, offering)
         spawner.volume_mounts = [
-            mount.model_dump(exclude_unset=True, exclude_none=True, exclude=set(["description"]))
+            mount.model_dump(exclude_unset=True, exclude_none=True, exclude={"description"})
             for mount in resolved_offering.mounts
         ]
 
