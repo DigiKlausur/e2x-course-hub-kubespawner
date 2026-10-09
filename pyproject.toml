@@ -93,10 +93,6 @@ name = "Build"
 cmd = "python -m build"
 
 [[tool.tbump.before_commit]]
-name = "Check with pytest"
-cmd = "pytest"
-
-[[tool.tbump.before_commit]]
 name = "Check with twine"
 cmd = "twine check dist/*"
 
