@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 from typing import Self
 
 from pydantic import BaseModel, Field
 
 from ..utils import PlaceholderContext, load_yaml, resolve_placeholders
+
+logger = logging.getLogger(__name__)
 
 
 class Mount(BaseModel):
@@ -124,3 +127,27 @@ class MountDefinitions(BaseModel):
         """
         archive_def = self.archived_term
         return [archive_def.resolve(ctx.with_term_id(tid)) for tid in term_ids]
+
+
+class MountPathConflictError(ValueError):
+    def __init__(self, mount_path: str, existing: Mount, conflicting: Mount):
+        super().__init__(
+            f"Conflicting mounts for path '{mount_path}': "
+            f"{existing.name}:{existing.subPath} (readOnly={existing.readOnly}) vs "
+            f"{conflicting.name}:{conflicting.subPath} (readOnly={conflicting.readOnly})"
+        )
+
+
+def deduplicate_mounts(mounts: list[Mount]) -> list[Mount]:
+    by_path: dict[str, Mount] = {}
+    for mount in mounts:
+        existing = by_path.get(mount.mountPath)
+        if existing is None:
+            by_path[mount.mountPath] = mount
+        elif existing.model_dump(exclude={"description"}) == mount.model_dump(
+            exclude={"description"}
+        ):
+            logger.warning("Dropping duplicate mount for path '%s'", mount.mountPath)
+        else:
+            raise MountPathConflictError(mount.mountPath, existing, mount)
+    return list(by_path.values())

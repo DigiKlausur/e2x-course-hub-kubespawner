@@ -166,11 +166,8 @@ class SpawnOfferings:
             if offering.course.course_id == course_id and offering.course.term_id == term_id
         ]
 
-    def archive_terms_for(
-        self,
-        offering: SpawnOffering,
-    ) -> list[str]:
-        return [
+    def archive_terms_for(self, offering: SpawnOffering) -> list[str]:
+        terms = (
             other.course.term_id
             for other in self._offerings
             if (
@@ -178,7 +175,8 @@ class SpawnOfferings:
                 and other.selection.spawn_role is offering.selection.spawn_role
                 and other.course.term_id != offering.course.term_id
             )
-        ]
+        )
+        return list(dict.fromkeys(terms))
 
 
 class KubeSpawnerProfileChoice(BaseModel):
