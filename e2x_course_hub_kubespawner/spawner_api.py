@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from e2x_course_hub.contract import CourseReference, SpawnOffering, SpawnOfferingProvider, UserLike
 
