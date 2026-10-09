@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "e2x-course-hub-kubespawner"
 dynamic = ["version"]
-description = 'Role-Based Access Control (RBAC) for JupyterHub within the e2x ecosystem, supporting hierarchical scopes (Hub, Course, Term) based on JupyterHub groups.'
+description = 'Kubernetes infrastructure provider for e2x-course-hub, translating course roles into KubeSpawner profiles (images, resources, and volume mounts).'
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
