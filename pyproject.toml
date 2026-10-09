@@ -69,7 +69,7 @@ asyncio_mode = "auto"
 github_url = "https://github.com/Digiklausur/e2x-course-hub-kubespawner"
 
 [tool.tbump.version]
-current = "0.1.0"
+current = "0.1.1"
 regex = '''
   (?P<major>\d+)
   \.
