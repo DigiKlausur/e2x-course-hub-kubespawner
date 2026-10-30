@@ -2,9 +2,9 @@ from pathlib import Path
 from typing import Self
 
 from e2x_course_hub.contract import SpawnRole
-from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationInfo, field_validator, model_validator
 
-from ..utils import load_yaml
+from ..utils import load_yaml, require_all_spawn_roles
 
 
 def resolve_path(root: Path, path: str) -> Path:
@@ -19,6 +19,8 @@ def _resolve_in_context(value: Path, info: ValidationInfo) -> Path:
 
 class ProfileConfig(BaseModel):
     """Paths to the per-role profile definition files, as declared in the top-level config."""
+
+    model_config = ConfigDict(extra="forbid")
 
     default_profile: str
     profiles: dict[str, Path]
@@ -43,6 +45,8 @@ class ProfileConfig(BaseModel):
 class Config(BaseModel):
     """Paths to the catalog source files, as declared in the top-level config file."""
 
+    model_config = ConfigDict(extra="forbid")
+
     mount_catalog_file: Path
     image_catalog_file: Path
     resource_tier_catalog_file: Path
@@ -54,6 +58,14 @@ class Config(BaseModel):
     @classmethod
     def _resolve_catalog_file(cls, value: Path, info: ValidationInfo) -> Path:
         return _resolve_in_context(value, info)
+
+    @field_validator("profiles", mode="after")
+    @classmethod
+    def _require_profiles_for_all_roles(
+        cls, value: dict[SpawnRole, ProfileConfig]
+    ) -> dict[SpawnRole, ProfileConfig]:
+        require_all_spawn_roles(value, "profiles")
+        return value
 
     @classmethod
     def from_yaml(cls, file_path: Path) -> Self:

@@ -2,16 +2,40 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from e2x_course_hub.contract import SpawnOfferingProvider
+from tornado.web import HTTPError
 from traitlets.config import Config as TraitletsConfig
 
+from .errors import CatalogValidationError
 from .schemas.config import Config
 from .spawner_api import K8sSpawnerAPI
+
+CATALOG_UNAVAILABLE_MESSAGE = (
+    "Course environments are currently unavailable. Please contact the administrator."
+)
 
 
 @dataclass
 class User:
     username: str
     groups: list[str]
+
+
+def _create_api(
+    spawner,
+    spawn_offering_provider: SpawnOfferingProvider,
+    config: Config | None = None,
+    sorter: Callable[[str], str] | None = None,
+) -> K8sSpawnerAPI:
+    """Create the spawner API; an invalid catalog is logged and shown to the user as a 503."""
+    try:
+        return K8sSpawnerAPI(
+            spawn_offering_provider=spawn_offering_provider,
+            config=config,
+            sorter=sorter,
+        )
+    except CatalogValidationError as e:
+        spawner.log.error("The infrastructure catalog is invalid:\n%s", e)
+        raise HTTPError(503, CATALOG_UNAVAILABLE_MESSAGE) from e
 
 
 def get_profile_list_hook(
@@ -35,11 +59,7 @@ def get_profile_list_hook(
             username=spawner.user.name,
             groups=[g.name for g in spawner.user.groups],
         )
-        api = K8sSpawnerAPI(
-            spawn_offering_provider=spawn_offering_provider,
-            config=config,
-            sorter=sorter,
-        )
+        api = _create_api(spawner, spawn_offering_provider, config, sorter)
         return [entry.model_dump() for entry in api.get_kubespawner_profile_list(user)]
 
     return hook
@@ -65,10 +85,7 @@ def get_pre_spawn_hook(
             username=spawner.user.name,
             groups=[g.name for g in spawner.user.groups],
         )
-        api = K8sSpawnerAPI(
-            spawn_offering_provider=spawn_offering_provider,
-            config=config,
-        )
+        api = _create_api(spawner, spawn_offering_provider, config)
         spawner.log.debug(f"User options are: {spawner.user_options}")
         choice_slug = spawner.user_options.get("profile-slug")
         offering = api.get_offering_from_choice_slug(user, choice_slug)

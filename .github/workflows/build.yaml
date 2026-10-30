@@ -52,6 +52,14 @@ jobs:
               assert (templates / name).is_file(), f"missing shared template: {name}"
           EOF
 
+      - name: Install test dependencies
+        run: python -m pip install "$(ls dist/*.whl)[test]"
+
+      # Run `pytest`, not `python -m pytest`: the latter puts the source tree on
+      # sys.path, so the tests would import it instead of the installed wheel.
+      - name: Run tests against the installed wheel
+        run: pytest
+
       - name: Upload distributions
         if: matrix.python-version == '3.13'
         uses: actions/upload-artifact@v7

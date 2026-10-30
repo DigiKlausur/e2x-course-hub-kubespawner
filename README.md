@@ -79,7 +79,7 @@ profiles:
 
 `profiles` is keyed by spawn role (`student`, `grader`, ...) as defined by `e2x_course_hub.contract.SpawnRole`. Each role points to one or more named profile files and declares which one is the default.
 
-The package reads the path to this file from the `E2X_K8S_SPAWNER_CONFIG_FILE` environment variable.
+The package reads the path to this file from the `E2X_KUBESPAWNER_CONFIG_FILE` environment variable.
 
 ### Image catalog (`image_catalog_file`)
 
@@ -168,6 +168,22 @@ extra:
 ```
 
 A profile with `has_archive_mounts: true` (typically graders) additionally gets a read-only `archived_term` mount for every other term in which the user holds the same role, so graders retain read access to past terms of the same course.
+
+### Validating the catalog
+
+Validate the catalog before rolling out a change, e.g. in CI or as a deployment pre-sync step:
+
+```bash
+e2x-kubespawner-validate /path/to/config.yaml
+```
+
+It prints every problem found across all files and exits with `1`, or prints `Catalog is valid.` and exits with `0`. It checks that:
+
+* every file matches its schema, with no unknown keys,
+* every spawn role has profiles, resource tiers, and an image in every image family,
+* every profile can be resolved: its mounts exist, its placeholders are known, and its mount paths (including archive mounts) don't conflict.
+
+The hub runs the same checks every time it loads the catalog. If the catalog is invalid, the problems are logged and users see a "Course environments are currently unavailable" page.
 
 ---
 

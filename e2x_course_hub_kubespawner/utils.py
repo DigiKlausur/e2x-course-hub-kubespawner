@@ -1,9 +1,28 @@
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Self
 
 import yaml
+from e2x_course_hub.contract import SpawnRole
+
+from .errors import MissingSpawnRoleError, UnresolvedPlaceholderError
+
+
+def require_all_spawn_roles(roles: Iterable[SpawnRole], what: str) -> None:
+    """
+    Raises a MissingSpawnRoleError if *roles* does not contain every spawn role.
+
+    The catalog must define everything for every role, so any role can be spawned.
+
+    Args:
+        roles: The spawn roles that are defined.
+        what: Describes what is missing a role, used in the error message.
+    """
+    missing = [role.value for role in SpawnRole if role not in set(roles)]
+    if missing:
+        raise MissingSpawnRoleError(what, missing)
 
 
 def load_yaml(yaml_file: Path | str) -> dict:
@@ -39,6 +58,16 @@ def load_yaml(yaml_file: Path | str) -> dict:
     return data
 
 
+PLACEHOLDER_START = "${{"
+PLACEHOLDER_END = "}}"
+
+
+def _placeholder_pattern(namespace: str) -> re.Pattern[str]:
+    """Match ``${{ <namespace>.<key> }}``, capturing the key; whitespace inside is allowed."""
+    start, end = re.escape(PLACEHOLDER_START), re.escape(PLACEHOLDER_END)
+    return re.compile(rf"{start}\s*{re.escape(namespace)}\.(\w+)\s*{end}")
+
+
 def resolve_placeholders(obj: Any, ctx: "PlaceholderContext", namespace: str = "inputs") -> Any:
     """Recursively resolve ${{namespace.key}} placeholders in a data structure.
 
@@ -55,7 +84,8 @@ def resolve_placeholders(obj: Any, ctx: "PlaceholderContext", namespace: str = "
         A deep copy of *obj* with all matching placeholders substituted.
 
     Raises:
-        ValueError: If a placeholder references a key not present in *ctx*.
+        UnresolvedPlaceholderError: If a placeholder references a key not present in
+            *ctx*, or a malformed placeholder (e.g. ``${{input.username}}``) is left.
     """
     if isinstance(obj, dict):
         return {k: resolve_placeholders(v, ctx, namespace) for k, v in obj.items()}
@@ -67,10 +97,16 @@ def resolve_placeholders(obj: Any, ctx: "PlaceholderContext", namespace: str = "
         def replace_param(match):
             param_name = match.group(1)
             if param_name not in values:
-                raise ValueError(f"Parameter '{param_name}' not found in context")
+                raise UnresolvedPlaceholderError(
+                    f"Parameter '{param_name}' not found in context, in {obj!r}"
+                )
             return str(values[param_name])
 
-        return re.sub(r"\$\{\{\s*" + namespace + r"\.(\w+)\s*\}\}", replace_param, obj)
+        resolved = _placeholder_pattern(namespace).sub(replace_param, obj)
+        # Anything still starting a placeholder is malformed, e.g. a typo in the namespace
+        if PLACEHOLDER_START in resolved:
+            raise UnresolvedPlaceholderError(f"Malformed placeholder in {obj!r}")
+        return resolved
     else:
         return obj
 

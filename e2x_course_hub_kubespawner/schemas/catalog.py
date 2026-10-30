@@ -4,9 +4,12 @@ from e2x_course_hub.contract import (
     SpawnRoleOptions,
     SpawnSelection,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
+from ..errors import MissingSpawnRoleError
+from ..utils import PlaceholderContext, require_all_spawn_roles
 from .image import Image, ImageFamilyDefinitions
+from .mount import Mount, MountDefinitions, deduplicate_mounts
 from .profiles import ProfileDefinition, ProfileDefinitions
 from .resources import Resources, ResourceTierDefinitions
 
@@ -25,10 +28,25 @@ class SpawnRoleDefinitions(BaseModel):
 
 
 class InfrastructureCatalogDefinitions(BaseModel):
-    """The complete infrastructure catalog definitions, including image families and spawn roles."""
+    """The complete infrastructure catalog definitions: image families, spawn roles and mounts."""
 
     image_family_definitions: ImageFamilyDefinitions
     spawn_role_definitions: dict[SpawnRole, SpawnRoleDefinitions]
+    mount_definitions: MountDefinitions
+
+    @field_validator("spawn_role_definitions", mode="after")
+    @classmethod
+    def _require_definitions_for_all_roles(
+        cls, value: dict[SpawnRole, SpawnRoleDefinitions]
+    ) -> dict[SpawnRole, SpawnRoleDefinitions]:
+        require_all_spawn_roles(value, "spawn role definitions")
+        return value
+
+    def _get_role_definitions(self, spawn_role: SpawnRole) -> SpawnRoleDefinitions:
+        role_definitions = self.spawn_role_definitions.get(spawn_role)
+        if not role_definitions:
+            raise MissingSpawnRoleError("spawn role definitions", [spawn_role.value])
+        return role_definitions
 
     def to_options(self) -> InfrastructureCatalogOptions:
         return InfrastructureCatalogOptions(
@@ -47,10 +65,7 @@ class InfrastructureCatalogDefinitions(BaseModel):
         Returns:
             ProfileDefinition: The profile definition corresponding to the spawn selection.
         """
-        role_definitions = self.spawn_role_definitions.get(spawn_selection.spawn_role)
-        if not role_definitions:
-            raise ValueError(f"No definitions found for spawn role: {spawn_selection.spawn_role}")
-
+        role_definitions = self._get_role_definitions(spawn_selection.spawn_role)
         return role_definitions.profile_definitions.get_profile_definition(
             spawn_selection.profile_name
         )
@@ -63,10 +78,7 @@ class InfrastructureCatalogDefinitions(BaseModel):
         Returns:
             Resources: The resources corresponding to the spawn selection.
         """
-        role_definitions = self.spawn_role_definitions.get(spawn_selection.spawn_role)
-        if not role_definitions:
-            raise ValueError(f"No definitions found for spawn role: {spawn_selection.spawn_role}")
-
+        role_definitions = self._get_role_definitions(spawn_selection.spawn_role)
         return role_definitions.resource_tier_definitions.get_resources(
             spawn_selection.resource_tier_name
         )
@@ -80,3 +92,31 @@ class InfrastructureCatalogDefinitions(BaseModel):
             Image: The image corresponding to the spawn selection.
         """
         return self.image_family_definitions.get_image_for_selection(spawn_selection)
+
+    def resolve_mounts(
+        self,
+        profile: ProfileDefinition,
+        ctx: PlaceholderContext,
+        archive_term_ids: list[str],
+        course_readonly: bool = False,
+    ) -> list[Mount]:
+        """
+        Resolve the mounts of a profile, including archive mounts if the profile has them.
+        Args:
+            profile (ProfileDefinition): The profile whose mounts to resolve.
+            ctx (PlaceholderContext): The values for the mount placeholders.
+            archive_term_ids (list[str]): The term IDs to mount as read-only archives.
+            course_readonly (bool): Whether to mount the current course term read-only.
+        Returns:
+            list[Mount]: The resolved, deduplicated mounts.
+        """
+        resolved_mounts = self.mount_definitions.resolve_many(names=profile.mounts, ctx=ctx)
+        if course_readonly and "course_term" in resolved_mounts:
+            resolved_mounts["course_term"] = resolved_mounts["course_term"].as_readonly()
+        mounts = list(resolved_mounts.values())
+
+        if profile.has_archive_mounts:
+            mounts.extend(
+                self.mount_definitions.resolve_archive_mounts(ctx=ctx, term_ids=archive_term_ids)
+            )
+        return deduplicate_mounts(mounts)

@@ -23,7 +23,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "e2x-course-hub>=0.2.0",
+  "e2x-course-hub>=0.3.0rc0",
   "PyYAML",
   "pydantic>=2.0.0",
   "pydantic-settings>=2.0.0",
@@ -52,6 +52,9 @@ docs = [
   "pydata-sphinx-theme",
 ]
 
+[project.scripts]
+e2x-kubespawner-validate = "e2x_course_hub_kubespawner.cli:main"
+
 [project.entry-points."e2x_course_hub.infrastructure_catalog_providers"]
 k8s_catalog = "e2x_course_hub_kubespawner.catalog_provider:K8sInfrastructureCatalogProvider"
 
@@ -64,6 +67,7 @@ path = "e2x_course_hub_kubespawner/__about__.py"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.tbump]
 github_url = "https://github.com/Digiklausur/e2x-course-hub-kubespawner"
