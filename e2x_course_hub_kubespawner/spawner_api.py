@@ -1,7 +1,9 @@
+import logging
 from collections.abc import Callable
 
 from e2x_course_hub.contract import CourseReference, SpawnOffering, SpawnOfferingProvider, UserLike
 
+from .errors import UnknownSelectionError
 from .loading import load_config, load_infrastructure_catalog
 from .schemas.config import Config
 from .schemas.mount import Mount
@@ -9,7 +11,8 @@ from .schemas.spawning import (
     KubeSpawnerProfileChoice,
     KubeSpawnerProfileEntry,
     KubeSpawnerProfileOptions,
-    OfferingNotAvailableError,
+    OfferingNotPermittedError,
+    OfferingUnavailableError,
     ResolvedSpawnProfile,
     Runtime,
     SpawnChoiceSlug,
@@ -18,6 +21,8 @@ from .schemas.spawning import (
 from .settings import K8sSpawnerSettings
 from .sorting import parse_term_for_sorting
 from .utils import PlaceholderContext
+
+logger = logging.getLogger(__name__)
 
 
 class K8sSpawnerAPI:
@@ -51,14 +56,7 @@ class K8sSpawnerAPI:
             ).to_str()
 
             display_name = f"{role} (read-only)" if offering.selection.course_readonly else role
-
-            choices[choice_slug] = KubeSpawnerProfileChoice(
-                display_name=display_name,
-                kubespawner_override=self._get_runtime_for_offering(
-                    user, offering
-                ).to_kubespawner_override(),
-                omit_details=offering.selection.course_readonly,
-            )
+            choices[choice_slug] = self._build_choice(user, offering, display_name)
 
         return KubeSpawnerProfileEntry(
             display_name=f"{course.course_id} - {course.term_id}",
@@ -71,6 +69,32 @@ class K8sSpawnerAPI:
             profile_options={
                 "profile-slug": KubeSpawnerProfileOptions(display_name="Profile", choices=choices)
             },
+        )
+
+    def _build_choice(
+        self, user: UserLike, offering: SpawnOffering, display_name: str
+    ) -> KubeSpawnerProfileChoice:
+        """Build the choice for an offering, disabled if its selection is not in the catalog."""
+        try:
+            runtime = self._get_runtime_for_offering(user, offering)
+        except UnknownSelectionError as e:
+            logger.warning(
+                "Offering unavailable for course_id=%r, term_id=%r, role=%r: %s",
+                offering.course.course_id,
+                offering.course.term_id,
+                offering.selection.spawn_role.value,
+                e,
+            )
+            return KubeSpawnerProfileChoice(
+                display_name=display_name,
+                kubespawner_override={},
+                omit_details=True,
+                unavailable=True,
+            )
+        return KubeSpawnerProfileChoice(
+            display_name=display_name,
+            kubespawner_override=runtime.to_kubespawner_override(),
+            omit_details=offering.selection.course_readonly,
         )
 
     def _get_mounts_for_offering(
@@ -137,12 +161,16 @@ class K8sSpawnerAPI:
         if offering not in offerings.for_course(
             course_id=offering.course.course_id, term_id=offering.course.term_id
         ):
-            raise OfferingNotAvailableError(
+            raise OfferingNotPermittedError(
                 username=user.username,
                 offering=offering,
             )
-        return ResolvedSpawnProfile(
-            course=offering.course,
-            runtime=self._get_runtime_for_offering(user, offering),
-            mounts=self._get_mounts_for_offering(user, offering, offerings),
-        )
+        # The catalog can change after the spawn page was rendered, so check again here
+        try:
+            return ResolvedSpawnProfile(
+                course=offering.course,
+                runtime=self._get_runtime_for_offering(user, offering),
+                mounts=self._get_mounts_for_offering(user, offering, offerings),
+            )
+        except UnknownSelectionError as e:
+            raise OfferingUnavailableError(offering, e) from e

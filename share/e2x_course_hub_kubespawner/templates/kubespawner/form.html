@@ -68,6 +68,25 @@
    color: white;
    border: 1px solid #079dde;
    }
+   .role-btn:disabled,
+   .role-btn:disabled:hover {
+   background-color: #eef0f2;
+   color: #5f6670;
+   border: 1px solid #d6d9dd;
+   cursor: not-allowed;
+   }
+   .unavailable-notice {
+   display: flex;
+   gap: 0.5rem;
+   align-items: flex-start;
+   background-color: #fff4e5;
+   border: 1px solid #f5c27a;
+   border-radius: 0.375rem;
+   padding: 0.5rem 0.75rem;
+   margin-bottom: 0.5rem;
+   font-size: 0.875rem;
+   color: #663c00;
+   }
    .accordion-button:not(.collapsed) {
    background-color: #005d92; /* HBRS dark blue */
    color: white;
@@ -288,11 +307,16 @@ and memory guarantees/limits).
 
 {#
 Macro: launch_role_buttons(profile)
-Creates buttons to launch a role for all roles in a profile
+Creates buttons to launch a role for all roles in a profile.
+Unavailable roles get a disabled button, so users know the environment exists.
+Every role button has the js-role class; only launchable ones have js-launch-role.
 #}
 {% macro launch_role_buttons(profile) -%}
   <div class="course-buttons mb-2">
     {% for role_slug, role in profile.profile_options['profile-slug'].choices|dictsort %}
+      {% if role.unavailable %}
+      <button type="button" class="btn btn-sm role-btn js-role" disabled>Launch {{ role.display_name }} (unavailable)</button>
+      {% else %}
       <form enctype="multipart/form-data"
             class="spawner-form"
             method="post"
@@ -304,10 +328,33 @@ Creates buttons to launch a role for all roles in a profile
         <input name="profile-option-{{ profile.slug }}--profile-slug"
                value="{{ role_slug }}"
                hidden />
-        <button type="submit" class="btn btn-sm role-btn role-default js-launch-role">Launch {{ role.display_name }}</button>
+        <button type="submit" class="btn btn-sm role-btn role-default js-role js-launch-role">Launch {{ role.display_name }}</button>
       </form>
+      {% endif %}
     {% endfor %}
   </div>
+{%- endmacro %}
+
+{#
+Macro: unavailable_notice(profile)
+Tells users to contact the instructor if some or all roles of a course are unavailable
+#}
+{% macro unavailable_notice(profile) -%}
+  {% set choices = profile.profile_options['profile-slug'].choices.values() | list %}
+  {% set n_unavailable = choices | selectattr('unavailable') | list | length %}
+  {% if n_unavailable > 0 %}
+    <div class="unavailable-notice" role="status">
+      <i class="fa fa-info-circle" aria-hidden="true" style="margin-top: 0.15rem;"></i>
+      <span>
+        {% if n_unavailable == choices | length %}
+          This course is currently unavailable.
+        {% else %}
+          Some environments for this course are unavailable.
+        {% endif %}
+        Please contact the instructor of this course.
+      </span>
+    </div>
+  {% endif %}
 {%- endmacro %}
 
 {#
@@ -326,6 +373,7 @@ Create a card for a profile, complete with launch buttons and overrides
     {% endif %}
     {% if profile.metadata and profile.metadata.description %}<p class="course-description">{{ profile.metadata.description }}</p>{% endif %}
     {% if profile.profile_options and profile.profile_options['profile-slug'] %}
+      {{ unavailable_notice(profile) }}
       {{ launch_role_buttons(profile) }}
       <input type="hidden"
              id="profile-role-{{ profile.slug }}"
@@ -407,10 +455,12 @@ Create a card for a profile, complete with launch buttons and overrides
           urlInputs.forEach(input => input.value = window.url);
       });
 
-      // Only auto-spawn if enabled and there is exactly one profile with one role option
+      // Only auto-spawn if enabled and there is exactly one course with one role,
+      // counting unavailable roles too, and that role can be launched
       if (window.autoSpawnSingleCourse) {
+          const roleButtons = document.querySelectorAll(".js-role");
           const launchButtons = document.querySelectorAll(".js-launch-role");
-          if (launchButtons.length === 1) {
+          if (roleButtons.length === 1 && launchButtons.length === 1) {
               const singleForm = launchButtons[0].closest("form") || launchButtons[0].closest(".spawner-form");
               if (singleForm) {
                   const countdown = window.autoSpawnCountdown ?? 5;
