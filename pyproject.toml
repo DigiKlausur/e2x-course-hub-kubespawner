@@ -73,7 +73,7 @@ asyncio_default_fixture_loop_scope = "function"
 github_url = "https://github.com/Digiklausur/e2x-course-hub-kubespawner"
 
 [tool.tbump.version]
-current = "0.1.1"
+current = "0.2.0-rc0"
 regex = '''
   (?P<major>\d+)
   \.
