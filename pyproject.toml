@@ -67,6 +67,7 @@ path = "e2x_course_hub_kubespawner/__about__.py"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.tbump]
 github_url = "https://github.com/Digiklausur/e2x-course-hub-kubespawner"
