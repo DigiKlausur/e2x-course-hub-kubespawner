@@ -16,14 +16,22 @@ class CatalogError(ValueError):
     """Base class for errors in the spawner's infrastructure catalog."""
 
 
-class UnknownImageFamilyError(CatalogError):
+class UnknownSelectionError(CatalogError):
+    """Base class for a selection (e.g. of a semester) that names something not in the catalog.
+
+    Once the catalog is validated, these are the only errors left when spawning: the
+    selection is outdated and has to be fixed by the instructor.
+    """
+
+
+class UnknownImageFamilyError(UnknownSelectionError):
     """Raised when an image family is not in the catalog."""
 
     def __init__(self, family_name: str, available: Iterable[str]):
         super().__init__(f"Image family '{family_name}' not found. Available: {list(available)}")
 
 
-class UnknownImageTagError(CatalogError):
+class UnknownImageTagError(UnknownSelectionError):
     """Raised when an image tag is not in the catalog for its family."""
 
     def __init__(self, family_name: str, tag: str):
@@ -32,14 +40,14 @@ class UnknownImageTagError(CatalogError):
         )
 
 
-class UnknownResourceTierError(CatalogError):
+class UnknownResourceTierError(UnknownSelectionError):
     """Raised when a resource tier is not in the catalog."""
 
     def __init__(self, tier_name: str, available: Iterable[str]):
         super().__init__(f"Resource tier '{tier_name}' not found. Available: {list(available)}")
 
 
-class UnknownProfileError(CatalogError):
+class UnknownProfileError(UnknownSelectionError):
     """Raised when a profile is not in the catalog."""
 
     def __init__(self, profile_name: str, available: Iterable[str]):

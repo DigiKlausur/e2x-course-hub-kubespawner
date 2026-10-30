@@ -36,19 +36,37 @@ class OfferingNotFoundError(ValueError):
         )
 
 
-class OfferingNotAvailableError(ValueError):
-    """Raised when a spawn offering is not available to a user."""
+class OfferingNotPermittedError(ValueError):
+    """Raised when a user requests a spawn offering that is not one of theirs."""
 
     def __init__(self, username: str, offering: SpawnOffering):
         self.username = username
         self.offering = offering
 
         super().__init__(
-            f"Offering not available for user {username!r}: "
+            f"Offering not permitted for user {username!r}: "
             f"course_id={offering.course.course_id!r}, "
             f"term_id={offering.course.term_id!r}, "
             f"role={offering.selection.spawn_role!r}, "
             f"readonly={offering.selection.course_readonly!r}"
+        )
+
+
+class OfferingUnavailableError(ValueError):
+    """Raised when a spawn offering's selection names something that is not in the catalog."""
+
+    # Shown to the user by JupyterHub; the details only go to the log.
+    jupyterhub_message = (
+        "This environment is currently unavailable. Please contact the instructor of this course."
+    )
+
+    def __init__(self, offering: SpawnOffering, reason: Exception):
+        self.offering = offering
+
+        super().__init__(
+            f"Offering unavailable for course_id={offering.course.course_id!r}, "
+            f"term_id={offering.course.term_id!r}, "
+            f"role={offering.selection.spawn_role!r}: {reason}"
         )
 
 
@@ -188,6 +206,9 @@ class KubeSpawnerProfileChoice(BaseModel):
     omit_details: bool = False
     """Whether the form should skip showing the kubespawner override details for this
     choice, e.g. because they are identical to those of the non-read-only role."""
+    unavailable: bool = False
+    """Whether the choice's selection names something not in the catalog. The form shows
+    it disabled, so users know the environment exists but can't be launched."""
 
 
 class KubeSpawnerProfileOptions(BaseModel):
