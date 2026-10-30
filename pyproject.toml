@@ -52,6 +52,9 @@ docs = [
   "pydata-sphinx-theme",
 ]
 
+[project.scripts]
+e2x-kubespawner-validate = "e2x_course_hub_kubespawner.cli:main"
+
 [project.entry-points."e2x_course_hub.infrastructure_catalog_providers"]
 k8s_catalog = "e2x_course_hub_kubespawner.catalog_provider:K8sInfrastructureCatalogProvider"
 

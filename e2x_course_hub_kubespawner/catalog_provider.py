@@ -2,15 +2,16 @@ from e2x_course_hub.contract import (
     InfrastructureCatalogOptions,
 )
 
-from .loading import load_infrastructure_catalog
+from .loading import load_config, load_infrastructure_catalog
 from .schemas.config import Config
 from .settings import K8sSpawnerSettings
 
 
 class K8sInfrastructureCatalog:
     def __init__(self, config: Config | None = None):
-        settings = K8sSpawnerSettings()  # pyright: ignore[reportCallIssue], config_file comes from env
-        config = config or Config.from_yaml(settings.config_file)
+        if config is None:
+            settings = K8sSpawnerSettings()  # pyright: ignore[reportCallIssue], config_file comes from env
+            config = load_config(settings.config_file)
         self._catalog = load_infrastructure_catalog(config)
 
     @property

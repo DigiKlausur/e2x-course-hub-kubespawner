@@ -4,13 +4,16 @@ from e2x_course_hub.contract import (
     ProfileOption,
     ProfileOptions,
 )
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 
+from ..errors import UnknownProfileError
 from ..utils import PlaceholderContext, resolve_placeholders
 
 
 class ProfileDefinition(BaseModel):
     """A profile definition for a specific spawn role."""
+
+    model_config = ConfigDict(extra="forbid")
 
     display_name: str
     description: str | None = None
@@ -58,5 +61,5 @@ class ProfileDefinitions(BaseModel):
             return self.profiles[self.default_profile]
         profile_definition = self.profiles.get(profile_name)
         if not profile_definition:
-            raise ValueError(f"No profile definition found for profile name: {profile_name}")
+            raise UnknownProfileError(profile_name, self.profiles)
         return profile_definition

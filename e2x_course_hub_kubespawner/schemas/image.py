@@ -7,7 +7,10 @@ from e2x_course_hub.contract import (
     SpawnRole,
     SpawnSelection,
 )
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
+
+from ..errors import MissingSpawnRoleError, UnknownImageFamilyError, UnknownImageTagError
+from ..utils import require_all_spawn_roles
 
 
 class Image(BaseModel):
@@ -25,6 +28,8 @@ class Image(BaseModel):
 class ImageFamilyDefinition(BaseModel):
     """A definition for a family of images."""
 
+    model_config = ConfigDict(extra="forbid")
+
     display_name: str
     description: str
     default_tag: str
@@ -41,6 +46,11 @@ class ImageFamilyDefinition(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def _require_images_for_all_roles(self) -> Self:
+        require_all_spawn_roles(self.images, "images")
+        return self
+
     def to_option(self) -> ImageFamilyOption:
         return ImageFamilyOption(
             display_name=self.display_name,
@@ -52,6 +62,8 @@ class ImageFamilyDefinition(BaseModel):
 
 class ImageFamilyDefinitions(BaseModel):
     """Definitions for all image families, including default registry and pull policy."""
+
+    model_config = ConfigDict(extra="forbid")
 
     default_registry: str
     default_pull_policy: str | None = None
@@ -71,9 +83,7 @@ class ImageFamilyDefinitions(BaseModel):
         try:
             return self.families[family_name]
         except KeyError:
-            raise ValueError(
-                f"Image family '{family_name}' not found. Available: {list(self.families)}"
-            ) from None
+            raise UnknownImageFamilyError(family_name, self.families) from None
 
     def _get_image_name(
         self,
@@ -83,9 +93,7 @@ class ImageFamilyDefinitions(BaseModel):
         family = self._get_family(family_name)
         image_name = family.images.get(spawn_role)
         if not image_name:
-            raise ValueError(
-                f"No image defined for spawn role '{spawn_role}' in family '{family_name}'"
-            )
+            raise MissingSpawnRoleError(f"Images of family '{family_name}'", [spawn_role.value])
         return image_name
 
     def _get_pull_policy(self, family: ImageFamilyDefinition) -> str:
@@ -94,9 +102,7 @@ class ImageFamilyDefinitions(BaseModel):
     def assert_image_selection_exists(self, family_name: str, tag: str | None = None) -> None:
         family = self._get_family(family_name)
         if tag is not None and tag not in family.tags:
-            raise ValueError(
-                f"Tag '{tag}' does not exist for image family '{family_name}' in the catalog."
-            )
+            raise UnknownImageTagError(family_name, tag)
 
     def to_options(self) -> ImageFamilyOptions:
         return ImageFamilyOptions(
@@ -111,12 +117,10 @@ class ImageFamilyDefinitions(BaseModel):
         tag: str | None = None,
     ) -> Image:
         family = self._get_family(family_name)
-        image_name = family.images.get(spawn_role)
+        image_name = self._get_image_name(family_name, spawn_role)
         tag = tag or family.default_tag
         if tag not in family.tags:
-            raise ValueError(
-                f"Tag '{tag}' does not exist for image family '{family_name}' in the catalog."
-            )
+            raise UnknownImageTagError(family_name, tag)
 
         registry = family.registry or self.default_registry
 

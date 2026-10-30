@@ -1,10 +1,10 @@
 import logging
-from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from ..utils import PlaceholderContext, load_yaml, resolve_placeholders
+from ..errors import MountPathConflictError, UnknownMountError
+from ..utils import PlaceholderContext, resolve_placeholders
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,8 @@ class MountDefinition(BaseModel):
           readOnly: false
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., description="Name of the volume")
     mountPath: str = Field(
         ..., description="Mount path inside the container (supports placeholders)"
@@ -65,6 +67,8 @@ class MountDefinitions(BaseModel):
     with ``readOnly=True``.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     student_home: MountDefinition = Field(
         ..., description="Mount definition for student home directories"
     )
@@ -78,12 +82,6 @@ class MountDefinitions(BaseModel):
     extra: dict[str, MountDefinition] = Field(
         default_factory=dict, description="Additional named mount definitions"
     )
-
-    @classmethod
-    def from_config_file(cls, file_path: Path | str) -> Self:
-        """Load mount definitions from a YAML file and return a MountDefinitions instance."""
-        raw_mounts = load_yaml(file_path)
-        return cls(**raw_mounts)
 
     @property
     def archived_term(self) -> MountDefinition:
@@ -105,7 +103,7 @@ class MountDefinitions(BaseModel):
         """Resolve a single named mount definition."""
         defs = self.get_all_definitions()
         if name not in defs:
-            raise KeyError(f"Unknown mount definition: '{name}'")
+            raise UnknownMountError(name, defs)
         return defs[name].resolve(ctx)
 
     def resolve_many(self, names: list[str], ctx: PlaceholderContext) -> dict[str, Mount]:
@@ -127,15 +125,6 @@ class MountDefinitions(BaseModel):
         """
         archive_def = self.archived_term
         return [archive_def.resolve(ctx.with_term_id(tid)) for tid in term_ids]
-
-
-class MountPathConflictError(ValueError):
-    def __init__(self, mount_path: str, existing: Mount, conflicting: Mount):
-        super().__init__(
-            f"Conflicting mounts for path '{mount_path}': "
-            f"{existing.name}:{existing.subPath} (readOnly={existing.readOnly}) vs "
-            f"{conflicting.name}:{conflicting.subPath} (readOnly={conflicting.readOnly})"
-        )
 
 
 def deduplicate_mounts(mounts: list[Mount]) -> list[Mount]:

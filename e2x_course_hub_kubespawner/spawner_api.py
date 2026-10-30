@@ -2,9 +2,9 @@ from collections.abc import Callable
 
 from e2x_course_hub.contract import CourseReference, SpawnOffering, SpawnOfferingProvider, UserLike
 
-from .loading import load_infrastructure_catalog, load_mount_catalog
+from .loading import load_config, load_infrastructure_catalog
 from .schemas.config import Config
-from .schemas.mount import Mount, deduplicate_mounts
+from .schemas.mount import Mount
 from .schemas.spawning import (
     KubeSpawnerProfileChoice,
     KubeSpawnerProfileEntry,
@@ -27,10 +27,10 @@ class K8sSpawnerAPI:
         config: Config | None = None,
         sorter: Callable[[str], str] | None = None,
     ):
-        settings = K8sSpawnerSettings()  # pyright: ignore[reportCallIssue], config_file comes from env
-        config = config or Config.from_yaml(settings.config_file)
+        if config is None:
+            settings = K8sSpawnerSettings()  # pyright: ignore[reportCallIssue], config_file comes from env
+            config = load_config(settings.config_file)
         self.catalog_definitions = load_infrastructure_catalog(config)
-        self.mount_catalog = load_mount_catalog(config)
         self.spawn_offering_provider = spawn_offering_provider
         self.sorter = sorter or parse_term_for_sorting
 
@@ -82,21 +82,12 @@ class K8sSpawnerAPI:
             course_id=offering.course.course_id,
             term_id=offering.course.term_id,
         )
-
-        resolved_mounts = self.mount_catalog.resolve_many(names=profile.mounts, ctx=ctx)
-        course_readonly = offering.selection.course_readonly
-        if course_readonly and "course_term" in resolved_mounts:
-            resolved_mounts["course_term"] = resolved_mounts["course_term"].as_readonly()
-        mounts = list(resolved_mounts.values())
-
-        if profile.has_archive_mounts:
-            mounts.extend(
-                self.mount_catalog.resolve_archive_mounts(
-                    ctx=ctx,
-                    term_ids=offerings.archive_terms_for(offering),
-                )
-            )
-        return deduplicate_mounts(mounts)
+        return self.catalog_definitions.resolve_mounts(
+            profile,
+            ctx,
+            archive_term_ids=offerings.archive_terms_for(offering),
+            course_readonly=offering.selection.course_readonly,
+        )
 
     def _get_runtime_for_offering(self, user: UserLike, offering: SpawnOffering) -> Runtime:
         selection = offering.selection

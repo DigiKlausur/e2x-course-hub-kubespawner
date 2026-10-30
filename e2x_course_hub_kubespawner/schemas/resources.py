@@ -3,12 +3,18 @@ from typing import Self
 from e2x_course_hub.contract import (
     ResourceTierOption,
     ResourceTierOptions,
+    SpawnRole,
 )
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, RootModel, model_validator
+
+from ..errors import UnknownResourceTierError
+from ..utils import require_all_spawn_roles
 
 
 class Resources(BaseModel):
     """Resource specifications for a specific resource tier."""
+
+    model_config = ConfigDict(extra="forbid")
 
     cpu_guarantee: float = 0.001
     cpu_limit: float = 2.0
@@ -18,6 +24,8 @@ class Resources(BaseModel):
 
 class ResourceTierDefinition(BaseModel):
     """A definition for a specific resource tier."""
+
+    model_config = ConfigDict(extra="forbid")
 
     display_name: str
     description: str
@@ -37,6 +45,8 @@ class ResourceTierDefinition(BaseModel):
 class ResourceTierDefinitions(BaseModel):
     """Definitions for all resource tiers for a specific spawn role."""
 
+    model_config = ConfigDict(extra="forbid")
+
     default_tier: str
     tiers: dict[str, ResourceTierDefinition]
 
@@ -50,7 +60,7 @@ class ResourceTierDefinitions(BaseModel):
 
     def assert_resource_selection_exists(self, tier_name: str | None = None) -> None:
         if tier_name and tier_name not in self.tiers:
-            raise ValueError(f"Tier '{tier_name}' not found. Available: {list(self.tiers.keys())}")
+            raise UnknownResourceTierError(tier_name, self.tiers)
 
     def to_options(self) -> ResourceTierOptions:
         return ResourceTierOptions(
@@ -64,5 +74,14 @@ class ResourceTierDefinitions(BaseModel):
             return self.tiers[self.default_tier].resources
         tier_definition = self.tiers.get(tier_name)
         if not tier_definition:
-            raise ValueError(f"No resource tier definition found for tier name: {tier_name}")
+            raise UnknownResourceTierError(tier_name, self.tiers)
         return tier_definition.resources
+
+
+class ResourceTierCatalog(RootModel[dict[SpawnRole, ResourceTierDefinitions]]):
+    """The resource tier file: the tier definitions of every spawn role, keyed by role."""
+
+    @model_validator(mode="after")
+    def _require_tiers_for_all_roles(self) -> Self:
+        require_all_spawn_roles(self.root, "resource tiers")
+        return self
