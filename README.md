@@ -223,6 +223,7 @@ c.KubeSpawner.additional_profile_form_template_paths = [KUBESPAWNER_TEMPLATE_PAT
 * `get_profile_list_hook` builds one `profile_list` entry per (course, term) the user has access to, with one selectable choice per role/read-only combination.
 * `get_pre_spawn_hook` resolves the chosen offering's image, resources, and volume mounts and applies the mounts to the spawner right before the pod is created (the image and resources are already applied through the `kubespawner_override` returned by the profile list).
 * `configure_autospawn` exposes `auto_spawn_single_course`/`auto_spawn_countdown` to the Jinja templates so the spawn page can skip the picker when only one option exists.
+* The spawn page shows the current username above the course list, with a hint telling students to give it to their instructor. Override the texts with `c.JupyterHub.template_vars["username_label"]` (default `Username`) and `c.JupyterHub.template_vars["username_hint"]`.
 
 Each selectable choice is identified by a `SpawnChoiceSlug` of the form `<course_id>.<term_id>.<role>[.ro]`, round-tripped through `to_str()`/`from_str()` — this is the value KubeSpawner stores in `user_options["profile-slug"]`.
 
