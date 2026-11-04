@@ -368,14 +368,12 @@ Generates a collapsible <details> block showing any Kubespawner
   <div class="course-buttons mb-2">
     {% for role_slug, role in profile.profile_options['profile-slug'].choices|dictsort %}
     {% if role.unavailable %}
-    <button type="button" class="btn btn-sm role-btn js-role" disabled>Launch {{ role.display_name }}
-      (unavailable)</button>
+    <button type="button" class="btn btn-sm role-btn js-role" disabled>Launch {{ role.display_name }} (unavailable)</button>
     {% else %}
     <form enctype="multipart/form-data" class="spawner-form" method="post" role="form">
       <input name="profile" id="profile-item-{{ profile.slug }}" value="{{ profile.slug }}" hidden />
       <input name="profile-option-{{ profile.slug }}--profile-slug" value="{{ role_slug }}" hidden />
-      <button type="submit" class="btn btn-sm role-btn role-default js-role js-launch-role">Launch {{ role.display_name
-        }}</button>
+      <button type="submit" class="btn btn-sm role-btn role-default js-role js-launch-role">Launch {{ role.display_name }}</button>
     </form>
     {% endif %}
     {% endfor %}
